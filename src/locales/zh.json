@@ -1,0 +1,84 @@
+{
+  "name": "三浦 竜也 (Tatsuya Miura)",
+  "role": "全栈工程师",
+  "bio": "使用 React 构建应用程序，使用 Arduino 构建物联网系统。热衷于内存安全系统和分布式架构。",
+  "skills": {
+    "languages": ["C++", "TypeScript", "JavaScript", "Rust", "Go", "Python"],
+    "frontend": ["React", "Tailwind CSS", "Expo"],
+    "backend": ["Node.js", "Vite", "MySQL"],
+    "Infrastructure": [
+      "Cloudflare",
+      "Firebase",
+      "Git",
+      "Docker",
+      "Tailscale",
+      "GCP",
+      "AWS"
+    ]
+  },
+  "projects": [
+    {
+      "name": "Music App",
+      "tech": [
+        "React",
+        "TypeScript",
+        "Vite",
+        "Hono",
+        "Cloudflare Workers",
+        "Cloudflare R2"
+      ],
+      "desc": "使用 React 和 Cloudflare R2 存储开发的音乐应用。",
+      "link": "https://github.com/TatsuyaM2667/FluxAudio-MusicApp"
+    },
+    {
+      "name": "Rust_OS",
+      "tech": ["Rust"],
+      "desc": "一个使用 Rust 编写的操作系统内核。",
+      "link": "https://github.com/TatsuyaM2667/Rust_os"
+    }
+  ],
+  "experiences": [
+    {
+      "period": "2026-至今",
+      "role": "项目经理",
+      "company": "SKYS",
+      "desc": "领导可扩展系统的 Web 开发和架构设计。"
+    }
+  ],
+  "research": [
+    {
+      "title": "分布式系统与边缘计算",
+      "desc": "研究分布式边缘节点的高效同步算法。"
+    },
+    {
+      "title": "基于 Rust 的 OS 内核",
+      "desc": "深入研究操作系统设计中的内存安全和并发模型。"
+    }
+  ],
+  "education": [
+    {
+      "period": "2023 - 2026",
+      "degree": "高中毕业证",
+      "institution": "法政大学第二高等学校"
+    },
+    {
+      "period": "2026 - 至今",
+      "degree": "计算机科学学士",
+      "institution": "埃塞克斯大学 (University of Essex)"
+    }
+  ],
+  "awards": [
+    {
+      "date": "2025",
+      "title": "宇宙甲子园 CanSat 部门全国亚军",
+      "desc": "在担任物理部 CTO 期间获奖。"
+    }
+  ],
+  "hobbies": ["散步", "阅读", "旅行", "登山"],
+  "contact": {
+    "github": "https://github.com/TatsuyaM2667",
+    "LinkedIn": "https://www.linkedin.com/in/tatsuya-miura-1bb48339a/",
+    "email": "tatsuyamiura2667@gmail.com",
+    "orcid": "https://orcid.org/0009-0007-5480-2657"
+  }
+}

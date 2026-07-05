@@ -1,0 +1,84 @@
+{
+  "name": "Tatsuya Miura",
+  "role": "フルスタックエンジニア",
+  "bio": "Reactを使用したアプリケーション構築とArduinoを使用したIoTシステムの構築。メモリセーフなシステムと分散アーキテクチャ",
+  "skills": {
+    "languages": ["C++", "TypeScript", "JavaScript", "Rust", "Go", "Python"],
+    "frontend": ["React", "Vite", "Next.js", "Hono", "Tailwind CSS"],
+    "backend": ["Node.js", "Vite", "Hono"],
+    "Infrastructure": [
+      "Cloudflare",
+      "Firebase",
+      "Git",
+      "Docker",
+      "Tailscale",
+      "GCP",
+      "AWS"
+    ]
+  },
+  "projects": [
+    {
+      "name": "Music App",
+      "tech": [
+        "React",
+        "TypeScript",
+        "Vite",
+        "Hono",
+        "Cloudflare Workers",
+        "Cloudflare R2"
+      ],
+      "desc": "ReactとCloudflare R2ストレージを使用した音楽アプリケーション",
+      "link": "https://github.com/TatsuyaM2667/FluxAudio-MusicApp"
+    },
+    {
+      "name": "Rust_OS",
+      "tech": ["Rust(no_std)"],
+      "desc": "Rust製のOS",
+      "link": "https://github.com/TatsuyaM2667/Rust_os"
+    }
+  ],
+  "experiences": [
+    {
+      "period": "2026-現在",
+      "role": "プロジェクトマネージャー",
+      "company": "SKYS",
+      "desc": "スケーラブルなシステムのWeb開発とアーキテクチャ設計をリード。"
+    }
+  ],
+  "research": [
+    {
+      "title": "分散システムとエッジコンピューティング",
+      "desc": "分散エッジノードのための効率的な同期アルゴリズムの調査。"
+    },
+    {
+      "title": "RustベースのOSカーネル",
+      "desc": "オペレーティングシステム設計におけるメモリ安全性と並行性モデルの深掘り。"
+    }
+  ],
+  "education": [
+    {
+      "period": "2023 - 2026",
+      "degree": "High School Diploma",
+      "institution": "法政大学第二高等学校"
+    },
+    {
+      "period": "2026 - 現在",
+      "degree": "BSc Computer Science",
+      "institution": "University of Essex"
+    }
+  ],
+  "awards": [
+    {
+      "date": "2025",
+      "title": "宇宙甲子園カンサット部門 全国準優勝",
+      "desc": "物理部CTOとして受賞。"
+    }
+  ],
+  "hobbies": ["散歩", "読書", "旅行", "登山"],
+  "contact": {
+    "github": "https://github.com/TatsuyaM2667",
+    "LinkedIn": "https://www.linkedin.com/in/tatsuya-miura-1bb48339a/",
+    "email": "tatsuyamiura2667@gmail.com",
+    "orcid": "https://orcid.org/0009-0007-5480-2657"
+  }
+}

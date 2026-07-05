@@ -1,0 +1,84 @@
+{
+  "name": "미우라 타츠야 (Tatsuya Miura)",
+  "role": "풀스택 엔지니어",
+  "bio": "React를 이용한 애플리케이션 아키텍처 및 Arduino를 이용한 IoT 시스템 구축. 메모리 안전 시스템 및 분산 아키텍처에 관심이 많습니다.",
+  "skills": {
+    "languages": ["C++", "TypeScript", "JavaScript", "Rust", "Go", "Python"],
+    "frontend": ["React", "Tailwind CSS", "Expo"],
+    "backend": ["Node.js", "Vite", "Hono"],
+    "Infrastructure": [
+      "Cloudflare",
+      "Firebase",
+      "Git",
+      "Docker",
+      "Tailscale",
+      "GCP",
+      "AWS"
+    ]
+  },
+  "projects": [
+    {
+      "name": "Music App",
+      "tech": [
+        "React",
+        "TypeScript",
+        "Vite",
+        "Hono",
+        "Cloudflare Workers",
+        "Cloudflare R2"
+      ],
+      "desc": "React와 Cloudflare R2 스토리지를 활용한 음악 애플리케이션.",
+      "link": "https://github.com/TatsuyaM2667/FluxAudio-MusicApp"
+    },
+    {
+      "name": "Rust_OS",
+      "tech": ["Rust"],
+      "desc": "Rust로 작성된 운영체제 커널.",
+      "link": "https://github.com/TatsuyaM2667/Rust_os"
+    }
+  ],
+  "experiences": [
+    {
+      "period": "2026-현재",
+      "role": "프로젝트 매니저",
+      "company": "SKYS",
+      "desc": "확장 가능한 시스템을 위한 웹 개발 및 아키텍처 설계 주도."
+    }
+  ],
+  "research": [
+    {
+      "title": "분산 시스템 및 엣지 컴퓨팅",
+      "desc": "분산 엣지 노드를 위한 효율적인 동기화 알고리즘 연구."
+    },
+    {
+      "title": "Rust 기반 OS 커널",
+      "desc": "운영체제 설계에서의 메모리 안전성 및 동시성 모델 심층 연구."
+    }
+  ],
+  "education": [
+    {
+      "period": "2023 - 2026",
+      "degree": "고등학교 졸업",
+      "institution": "호세이 대학 제2 고등학교"
+    },
+    {
+      "period": "2026 - 현재",
+      "degree": "컴퓨터공학 학사",
+      "institution": "에섹스 대학교 (University of Essex)"
+    }
+  ],
+  "awards": [
+    {
+      "date": "2025",
+      "title": "우주 고시엔 CanSat 부문 전국 준우승",
+      "desc": "물리부 CTO 재직 중 수상."
+    }
+  ],
+  "hobbies": ["산책", "독서", "여행", "등산"],
+  "contact": {
+    "github": "https://github.com/TatsuyaM2667",
+    "LinkedIn": "https://www.linkedin.com/in/tatsuya-miura-1bb48339a/",
+    "email": "tatsuyamiura2667@gmail.com",
+    "orcid": "https://orcid.org/0009-0007-5480-2657"
+  }
+}

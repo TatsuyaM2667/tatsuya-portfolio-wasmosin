@@ -1,0 +1,84 @@
+{
+  "name": "Tatsuya Miura",
+  "role": "Ingénieur Full-Stack",
+  "bio": "Architecture d'applications avec React et systèmes IoT avec Arduino. Passionné par les systèmes à mémoire sécurisée et les architectures distribuées.",
+  "skills": {
+    "languages": ["C++", "TypeScript", "JavaScript", "Rust", "Go", "Python"],
+    "frontend": ["React", "Tailwind CSS", "Expo"],
+    "backend": ["Node.js", "Vite", "Hono"],
+    "Infrastructure": [
+      "Cloudflare",
+      "Firebase",
+      "Git",
+      "Docker",
+      "Tailscale",
+      "GCP",
+      "AWS"
+    ]
+  },
+  "projects": [
+    {
+      "name": "Music App",
+      "tech": [
+        "React",
+        "TypeScript",
+        "Vite",
+        "Hono",
+        "Cloudflare Workers",
+        "Cloudflare R2"
+      ],
+      "desc": "Application musicale utilisant React et le stockage Cloudflare R2.",
+      "link": "https://github.com/TatsuyaM2667/FluxAudio-MusicApp"
+    },
+    {
+      "name": "Rust_OS",
+      "tech": ["Rust"],
+      "desc": "Un noyau de système d'exploitation écrit en Rust.",
+      "link": "https://github.com/TatsuyaM2667/Rust_os"
+    }
+  ],
+  "experiences": [
+    {
+      "period": "2026-Présent",
+      "role": "Chef de projet",
+      "company": "SKYS",
+      "desc": "Dirige le développement web et la conception architecturale de systèmes évolutifs."
+    }
+  ],
+  "research": [
+    {
+      "title": "Systèmes distribués et Edge Computing",
+      "desc": "Recherche d'algorithmes de synchronisation efficaces pour les nœuds périphériques distribués."
+    },
+    {
+      "title": "Noyaux d'OS basés sur Rust",
+      "desc": "Une plongée profonde dans la sécurité de la mémoire et les modèles de concurrence dans la conception de systèmes d'exploitation."
+    }
+  ],
+  "education": [
+    {
+      "period": "2023 - 2026",
+      "degree": "Diplôme d'études secondaires",
+      "institution": "Hosei University Second High School"
+    },
+    {
+      "period": "2026 - Présent",
+      "degree": "BSc en informatique",
+      "institution": "University of Essex"
+    }
+  ],
+  "awards": [
+    {
+      "date": "2025",
+      "title": "Vice-champion national dans la division CanSat du Space Koshien",
+      "desc": "Récompensé en tant que CTO du club de physique."
+    }
+  ],
+  "hobbies": ["Marche", "Lecture", "Voyages", "Alpinisme"],
+  "contact": {
+    "github": "https://github.com/TatsuyaM2667",
+    "LinkedIn": "https://www.linkedin.com/in/tatsuya-miura-1bb48339a/",
+    "email": "tatsuyamiura2667@gmail.com",
+    "orcid": "https://orcid.org/0009-0007-5480-2657"
+  }
+}

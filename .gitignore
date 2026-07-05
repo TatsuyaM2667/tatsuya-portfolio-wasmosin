@@ -1,0 +1,26 @@
+# --- Bun ---
+.bun/
+
+# --- Build Artifacts & Caching ---
+node_modules/
+dist/
+dist-ssr/
+*.local
+functions/[[path]].ts
+
+# --- Environment Variables ---
+.env
+.env.local
+.env.*.local
+
+# --- Editor & OS files ---
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
