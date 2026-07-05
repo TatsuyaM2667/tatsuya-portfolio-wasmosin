@@ -23,15 +23,19 @@ await Bun.build({
 });
 
 // Hono (Cloudflare Pages Functions) のビルド
-// naming で [path] がプレースホルダと誤認されるため一旦 _worker.js で出力してリネームする
+// /api/* だけを Functions でハンドルするため functions/api/ 配下に出力する。
+// functions/[[path]].ts（ルートキャッチオール）だと静的ファイルまで横取りして404になる。
+await $`mkdir -p ./functions/api`;
 await Bun.build({
   entrypoints: ["./server/index.ts"],
-  outdir: "./functions",
+  outdir: "./functions/api",
   naming: "_worker.js",
   minify: true,
 });
-await $`rm -f "./functions/[[path]].ts" "./functions/[path]].ts"`;
-await $`mv ./functions/_worker.js "./functions/[[path]].ts"`;
+await $`rm -f "./functions/api/[[path]].ts" "./functions/api/[path]].ts"`;
+await $`mv ./functions/api/_worker.js "./functions/api/[[path]].ts"`;
+// ルートレベルの古いキャッチオールを削除（あれば）
+await $`rm -f "./functions/[[path]].ts"`;
 
 console.log("All systems successfully built! (WASM + React + Hono)!");
 

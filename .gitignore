@@ -6,7 +6,7 @@ node_modules/
 dist/
 dist-ssr/
 *.local
-functions/[[path]].ts
+functions/api/[[path]].ts
 # public/dist/ と public/main.wasm は Cloudflare Pages CI で生成/使用するため Git 管理する
 
 # --- Environment Variables ---
