@@ -203,6 +203,10 @@ DAY_LENGTH :: 480.0
 ARC_START :: 0.18 // このphaseで太陽が地平線から昇り始める
 ARC_END :: 0.82 // このphaseで太陽が沈み切る
 
+// 開始オフセット: phase 0.14（日の出直前・薄明）から始まるようにずらす
+// 0.14 * 480 = 67.2秒分を加算することでtime=0のとき phase≈0.14 になる
+TIME_OFFSET :: 0.14 * DAY_LENGTH
+
 // ─── マウス操作によるさざ波（湖のインタラクション） ────────────────────────
 // JS側でポインタ移動/クリックに応じて spawn_ripple を呼び、波紋を水面に広げる。
 RIPPLE_MAX :: 5
@@ -239,7 +243,9 @@ METEOR_TRAIL :: 0.09
 render_frame :: proc "contextless" (time: f32) {
 	PI :: 3.14159265358979
 
-	phase := frac1(time / DAY_LENGTH)
+	// TIME_OFFSETを加えて日の出直前(phase≈0.14)からスタート
+	adj_time := time + TIME_OFFSET
+	phase := frac1(adj_time / DAY_LENGTH)
 	zenith, horizon_col, sun_k, star_k, vivid_k := sample_sky_palette(phase)
 
 	// 太陽の位置（東から西へ弧を描いて移動）。ARC範囲外は地平線の下＝夜
@@ -257,8 +263,8 @@ render_frame :: proc "contextless" (time: f32) {
 
 	// weather: low-frequency noise decides how cloudy "today" is, so it is not
 	// always the same amount of cloud cover.
-	weather := fbm(time * 0.0009, 88.0, 2)
-	weather_amount := clamp01(weather * 1.1 - 0.30) // 0=clear .. 1=cloudy  ← バイアスを上げて晴れがちに
+	weather := fbm(adj_time * 0.0009, 88.0, 2)
+	weather_amount := clamp01(weather * 0.9 - 0.35) // 0=clear .. 1=cloudy  ← さらに晴れがちに
 
 	// shooting stars: split time into METEOR_PERIOD slots and deterministically
 	// decide per-slot (via hash of the slot index) whether a meteor appears and
@@ -390,43 +396,51 @@ render_frame :: proc "contextless" (time: f32) {
 				sb = lerp(sb, 140.0, outer * 0.22 * sun_visibility)
 			}
 
-			// ── 雲（写真の入道雲・わた雲のように、大きくて輪郭のはっきりした少数の雲を） ──
-			// ドメインワープ（別のノイズで坐標自体を揺らす）で自然な不規則な輪郭にする
-			warp_x := fbm(ux * 0.9 + 4.0, uy * 0.9 + time * 0.0022, 2)
-			warp_y := fbm(ux * 0.9 + 91.3, uy * 0.9 + time * 0.0022, 2)
+			// ── 雲（2レイヤー構成でリアルな流れと奥行きを表現） ──────────────────
+			// Layer 1: 高層雲（Cirrus系）── 速く流れ、細かいテクスチャ
+			warp_x1 := fbm(ux * 0.8 + 4.0,  uy * 0.7 + adj_time * 0.004, 2)
+			warp_y1 := fbm(ux * 0.8 + 91.3, uy * 0.7 + adj_time * 0.004, 2)
+			cx1 := ux * 1.3 + (warp_x1 - 0.5) * 0.6 + adj_time * 0.0075
+			cy1 := uy * 0.9 + (warp_y1 - 0.5) * 0.4 + 10.0
+			cn1 := fbm(cx1, cy1, 4)
 
-			cx1 := ux * 1.15 + (warp_x - 0.5) * 0.85 + time * 0.0022
-			cy1 := uy * 1.0 + (warp_y - 0.5) * 0.85 + 10.0
-			cn1 := fbm(cx1, cy1, 5)
+			// Layer 2: 低層雲（Cumulus系）── ゆっくり流れ、塊感が強い
+			warp_x2 := fbm(ux * 0.5 + 20.7, uy * 0.6 + adj_time * 0.002, 2)
+			warp_y2 := fbm(ux * 0.5 + 73.1, uy * 0.6 + adj_time * 0.002, 2)
+			cx2 := ux * 0.9 + (warp_x2 - 0.5) * 0.9 + adj_time * 0.0030 + 50.0
+			cy2 := uy * 1.1 + (warp_y2 - 0.5) * 0.7 + 30.0
+			cn2 := fbm(cx2, cy2, 3)
 
-			// しきい値を日によって上下させ（晴れの日は雲が少なく、暮りの日は増える）ことで、
-			// 不透明度ではなく雲の量自体が変化するようにする
-			cloud_edge := 0.68 - weather_amount * 0.20  // ← ベース値を上げて雲のしきい値を高くする
-			d := clamp01((cn1 - cloud_edge) * 3.6 + 0.5)
-			cloud_alpha := d * d * (3.0 - 2.0 * d) // 急峻だが滑らかなエッジ
+			// 2レイヤーを合成（低層雲が主体。高層雲は薄く重ねる）
+			cn_merged := cn2 * 0.65 + cn1 * 0.35
+
+			// しきい値: ベース値を高くして晴れがちに（低いほど雲が多い）
+			cloud_edge := 0.72 - weather_amount * 0.18
+			d := clamp01((cn_merged - cloud_edge) * 4.0 + 0.5)
+			cloud_alpha := d * d * (3.0 - 2.0 * d)
 			cloud_alpha *= cloud_mask
 
-			// 雲の密な部分は光を受けて明るく、薄い部分はやや暗い影に（立体感）
-			cloud_shade := clamp01(0.42 + d * 0.75)
+			// 雲の密な部分は明るく、薄い部分はやや暗い（立体感・陰影）
+			cloud_shade := clamp01(0.38 + d * 0.80)
 
-			cloud_r := lerp(120.0, 255.0, cloud_shade)
-			cloud_g := lerp(128.0, 253.0, cloud_shade)
-			cloud_b := lerp(140.0, 255.0, cloud_shade)
+			cloud_r := lerp(115.0, 255.0, cloud_shade)
+			cloud_g := lerp(122.0, 253.0, cloud_shade)
+			cloud_b := lerp(135.0, 255.0, cloud_shade)
 
 			if vivid_k > 0.01 {
 				warm := vivid_k * smoothstep(0.0, 0.9, uy)
-				cloud_r = lerp(cloud_r, 255.0, warm * 0.5)
-				cloud_g = lerp(cloud_g, 150.0, warm * 0.4)
-				cloud_b = lerp(cloud_b, 95.0, warm * 0.45)
+				cloud_r = lerp(cloud_r, 255.0, warm * 0.55)
+				cloud_g = lerp(cloud_g, 145.0, warm * 0.40)
+				cloud_b = lerp(cloud_b, 85.0,  warm * 0.50)
 			}
 			night_dim := 1.0 - star_k * 0.55
 			cloud_r *= night_dim
 			cloud_g *= night_dim
 			cloud_b *= night_dim
 
-			sr = lerp(sr, cloud_r, cloud_alpha * 0.85)
-			sg = lerp(sg, cloud_g, cloud_alpha * 0.85)
-			sb = lerp(sb, cloud_b, cloud_alpha * 0.85)
+			sr = lerp(sr, cloud_r, cloud_alpha * 0.88)
+			sg = lerp(sg, cloud_g, cloud_alpha * 0.88)
+			sb = lerp(sb, cloud_b, cloud_alpha * 0.88)
 
 			// ── 星空（控えめな数・点滅なし。ウユニ塩湖のように水面に映る） ──
 			if star_k > 0.0 && cloud_alpha < 0.3 {
