@@ -7,8 +7,7 @@ dist/
 dist-ssr/
 *.local
 functions/[[path]].ts
-public/dist/
-# public/main.wasm は CI でビルドできないため意図的に Git 管理する（除外しない）
+# public/dist/ と public/main.wasm は Cloudflare Pages CI で生成/使用するため Git 管理する
 
 # --- Environment Variables ---
 .env

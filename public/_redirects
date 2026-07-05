@@ -1,0 +1,4 @@
+# Cloudflare Pages SPA フォールバック
+# 拡張子なしのパス（/skills, /contact など）はすべて index.html で処理
+# 静的ファイル（.js, .css, .wasm 等）は Cloudflare が直接配信するためここには引っかからない
+/*  /index.html  200
