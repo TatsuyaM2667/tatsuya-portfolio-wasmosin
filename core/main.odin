@@ -55,6 +55,10 @@ lerp :: proc "contextless" (a, b, t: f32) -> f32 {
 	return a + (b - a) * t
 }
 
+mix3 :: proc "contextless" (a, b: [3]f32, t: f32) -> [3]f32 {
+	return [3]f32{lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)}
+}
+
 clamp01 :: proc "contextless" (v: f32) -> f32 {
 	if v < 0.0 do return 0.0
 	if v > 1.0 do return 1.0
@@ -64,6 +68,10 @@ clamp01 :: proc "contextless" (v: f32) -> f32 {
 smoothstep :: proc "contextless" (edge0, edge1, x: f32) -> f32 {
 	t := clamp01((x - edge0) / (edge1 - edge0))
 	return t * t * (3.0 - 2.0 * t)
+}
+
+frac1 :: proc "contextless" (x: f32) -> f32 {
+	return x - math.floor(x)
 }
 
 // ─── ノイズテクスチャ ──────────────────────────────────────────────────────
@@ -122,161 +130,204 @@ fbm :: proc "contextless" (x, y: f32, octaves: i32) -> f32 {
 	return v / m
 }
 
+// ─── 一日の色パレット（キーフレーム方式） ──────────────────────────────────
+// 単純な2色ブレンドではなく、夜明け前・日の出・朝・正午・夕方・日没・夜明け前…と
+// 複数のキーフレームを持たせることで、朝昼晩それぞれの段階がはっきり感じられる
+// ようにする。sun_k=太陽の輝き強度 / star_k=星空の見え方 / vivid_k=地平線の彩度・コントラスト
+Keyframe :: struct {
+	phase:   f32,
+	zenith:  [3]f32,
+	horizon: [3]f32,
+	sun_k:   f32,
+	star_k:  f32,
+	vivid_k: f32,
+}
+
+DAY_KEYFRAMES := [8]Keyframe {
+	{0.00, {6, 8, 22}, {14, 16, 34}, 0.0, 1.00, 0.08}, // 深夜
+	{0.14, {10, 14, 40}, {40, 30, 58}, 0.05, 0.75, 0.30}, // 夜明け前
+	{0.24, {40, 55, 118}, {255, 130, 80}, 1.0, 0.05, 1.00}, // 日の出
+	{0.36, {35, 118, 205}, {200, 222, 245}, 0.85, 0.0, 0.18}, // 朝
+	{0.50, {40, 130, 228}, {206, 232, 253}, 1.0, 0.0, 0.0}, // 正午
+	{0.64, {35, 118, 205}, {205, 205, 220}, 0.85, 0.0, 0.22}, // 夕方前
+	{0.76, {35, 50, 110}, {255, 110, 70}, 1.0, 0.05, 1.00}, // 日没
+	{0.88, {10, 14, 40}, {45, 32, 58}, 0.05, 0.75, 0.32}, // 夜の始まり
+}
+
+sample_sky_palette :: proc "contextless" (
+	phase: f32,
+) -> (
+	zenith: [3]f32,
+	horizon: [3]f32,
+	sun_k: f32,
+	star_k: f32,
+	vivid_k: f32,
+) {
+	N :: len(DAY_KEYFRAMES)
+	for i in 0 ..< N {
+		a := DAY_KEYFRAMES[i]
+		b := DAY_KEYFRAMES[(i + 1) % N]
+		b_phase := i == N - 1 ? 1.0 : b.phase
+		if phase >= a.phase && phase < b_phase {
+			t := smoothstep(0.0, 1.0, (phase - a.phase) / (b_phase - a.phase))
+			zenith = mix3(a.zenith, b.zenith, t)
+			horizon = mix3(a.horizon, b.horizon, t)
+			sun_k = lerp(a.sun_k, b.sun_k, t)
+			star_k = lerp(a.star_k, b.star_k, t)
+			vivid_k = lerp(a.vivid_k, b.vivid_k, t)
+			return
+		}
+	}
+	last := DAY_KEYFRAMES[N - 1]
+	zenith = last.zenith
+	horizon = last.horizon
+	sun_k = last.sun_k
+	star_k = last.star_k
+	vivid_k = last.vivid_k
+	return
+}
+
+// 一日の長さ（秒）。ゆっくり進める方が「サイクル感」を感じやすい
+DAY_LENGTH :: 480.0
+ARC_START :: 0.18 // このphaseで太陽が地平線から昇り始める
+ARC_END :: 0.82 // このphaseで太陽が沈み切る
+
 // ─── メインレンダラ ────────────────────────────────────────────────────────
 // time: 経過秒数（JS の requestAnimationFrame timestamp / 1000）
 @(export)
 render_frame :: proc "contextless" (time: f32) {
+	PI :: 3.14159265358979
 
-	// 太陽の角度（ゆっくりサイクル: 約 210 秒で 1 周）
-	sun_angle := time * 0.03
-	sun_y_sin := fast_sin(sun_angle) // -1 〜 +1  (負 = 夜, 正 = 昼)
-	sun_x_cos := fast_cos(sun_angle)
+	phase := frac1(time / DAY_LENGTH)
+	zenith, horizon_col, sun_k, star_k, vivid_k := sample_sky_palette(phase)
 
-	// 正規化した太陽高度: 0 = 真夜中, 1 = 正午
-	day_t := clamp01(sun_y_sin * 0.5 + 0.5)
-
-	// 夭暪れ係数 (日の出・日没付近で 1、やや広めのフレーム)
-	sunset_t := 1.0 - math.abs(sun_y_sin) * 1.6
-	if sunset_t < 0.0 do sunset_t = 0.0
-
-	// 地平線の常時の大気光の暖色（夜は深い紺、昇り降りは橘色に）
-	ambient_warmth := (1.0 - day_t) * 0.22
-	horizon_warmth := sunset_t
-	if ambient_warmth > horizon_warmth do horizon_warmth = ambient_warmth
+	// 太陽の位置（東から西へ弧を描いて移動）。ARC範囲外は地平線の下＝夜
+	day_progress := (phase - ARC_START) / (ARC_END - ARC_START)
+	sun_above := day_progress >= 0.0 && day_progress <= 1.0
+	sun_arc: f32 = 0.0
+	sun_px: f32 = 0.5
+	sun_uy: f32 = 1.2
+	if sun_above {
+		sun_arc = fast_sin(clamp01(day_progress) * PI)
+		sun_px = lerp(0.06, 0.94, day_progress)
+		sun_uy = 1.0 - sun_arc * 0.9
+	}
+	sun_visibility := sun_above ? sun_arc * sun_k : 0.0
 
 	for y in 0 ..< HEIGHT {
 		is_water := y > HEIGHT / 2
 
 		// 水面は空を上下反転してサンプリング
 		ry := is_water ? HEIGHT - y : y
-		// uy: 0(地平線) → 1(天頂 or 水底)
+		// uy: 0(天頂/画面最上部) → 1(地平線)
 		uy := f32(ry) / f32(HEIGHT / 2)
+		dh := is_water ? f32(y - HEIGHT / 2) / f32(HEIGHT / 2) : 0.0 // 0〜1 (水面奥〜手前)
 
 		for x in 0 ..< WIDTH {
 			ux := f32(x) / f32(WIDTH)
 
-			// ── 空のグラデーション ──────────────────────────────────────
-			// 夜: Tokyo Night (#1a1b26 → #24283b)
-			// 昼: 青空 (#1a6fd0 → #5cb8ff)
-			// 地平線付近の暖色 (日の出/日没)
+			// ── 空のグラデーション（キーフレームパレットから） ─────────────
+			sr := lerp(zenith[0], horizon_col[0], uy)
+			sg := lerp(zenith[1], horizon_col[1], uy)
+			sb := lerp(zenith[2], horizon_col[2], uy)
 
-			// 天頂色
-			sky_top_r := lerp(10.0, 40.0, day_t)
-			sky_top_g := lerp(12.0, 120.0, day_t)
-			sky_top_b := lerp(35.0, 220.0, day_t)
+			// 地平線に近いほど強く出る暖色グロー（uyが1=地平線に近いほど強い）
+			horizon_band := smoothstep(0.4, 1.0, uy) * vivid_k
+			sr = lerp(sr, 255.0, horizon_band * 0.72)
+			sg = lerp(sg, 130.0, horizon_band * 0.5)
+			sb = lerp(sb, 65.0, horizon_band * 0.58)
 
-			// 地平線色（昼は明るいシアン、夜は暗め）
-			sky_bot_r := lerp(26.0, 170.0, day_t)
-			sky_bot_g := lerp(27.0, 210.0, day_t)
-			sky_bot_b := lerp(50.0, 252.0, day_t)
+			// 地平線ぎりぎりに、写真のようなクリアで濃い縁を重ねる
+			rim_band := smoothstep(0.9, 1.0, uy) * vivid_k
+			sr = lerp(sr, 255.0, rim_band * 0.55)
+			sg = lerp(sg, 190.0, rim_band * 0.4)
+			sb = lerp(sb, 140.0, rim_band * 0.35)
 
-			// 地平線になるほど強く出る常時の暖色グロー（ウユニ塩湖の写真のような靖やかなセパリノタ）
-			// uy: 0=天頂(画面上部) 〜 1=地平線(画面中央) なので、uyが大きいほど地平線に近い
-			horizon_band := smoothstep(0.45, 1.0, uy) * horizon_warmth
-			sky_bot_r = lerp(sky_bot_r, 255.0, horizon_band * 0.75)
-			sky_bot_g = lerp(sky_bot_g, 130.0, horizon_band * 0.55)
-			sky_bot_b = lerp(sky_bot_b, 60.0, horizon_band * 0.6)
+			// ── 太陽（弧を描いて移動・地平線付近は横に伸びる大気のにじみ） ──
+			if sun_above {
+				dx := ux - sun_px
+				dy := uy - sun_uy
+				// 地平線に近いほど横長に潰れた輝き（大気による屈折イメージ）
+				squeeze := lerp(2.0, 1.0, clamp01(sun_uy))
+				sun_dist := math.sqrt((dx * squeeze) * (dx * squeeze) + dy * dy)
 
-			sr := lerp(sky_top_r, sky_bot_r, uy)
-			sg := lerp(sky_top_g, sky_bot_g, uy)
-			sb := lerp(sky_top_b, sky_bot_b, uy)
+				// コア（強い白〜黄）
+				core := clamp01(1.0 - sun_dist / 0.045)
+				sr = lerp(sr, 255.0, core * 0.95 * sun_visibility)
+				sg = lerp(sg, 250.0, core * 0.95 * sun_visibility)
+				sb = lerp(sb, 215.0, core * 0.9 * sun_visibility)
 
-			// 地平線すぐ上にも一番濃い帯を重ねて、画像のようなクリアな境目を作る
-			rim_band := smoothstep(0.88, 1.0, uy) * horizon_warmth
-			sr = lerp(sr, 255.0, rim_band * 0.5)
-			sg = lerp(sg, 170.0, rim_band * 0.35)
-			sb = lerp(sb, 110.0, rim_band * 0.3)
+				// 中間グロー
+				mid := clamp01(1.0 - sun_dist / 0.14)
+				mid = mid * mid
+				sr = lerp(sr, 255.0, mid * 0.55 * sun_visibility)
+				sg = lerp(sg, 205.0, mid * 0.5 * sun_visibility)
+				sb = lerp(sb, 130.0, mid * 0.45 * sun_visibility)
 
-			// ── 太陽 ─────────────────────────────────────────────────────
-			sun_px := (sun_x_cos * 0.4 + 0.5) // 0.1 〜 0.9
-			sun_py := 0.90 - day_t * 0.80 // 昼は高く
-
-			dx := ux - sun_px
-			dy := uy - sun_py
-			sun_dist := math.sqrt(dx * dx + dy * dy)
-
-			// 太陽が地平線より上にあるときだけ描画
-			if sun_y_sin > -0.05 {
-				// コア（強い白）
-				if sun_dist < 0.05 {
-					b := 1.0 - sun_dist / 0.05
-					sr = lerp(sr, 255.0, b * 0.92)
-					sg = lerp(sg, 245.0, b * 0.92)
-					sb = lerp(sb, 200.0, b * 0.85)
-				}
-				// グロー
-				if sun_dist < 0.3 {
-					g := 1.0 - sun_dist / 0.3
-					g = g * g * 0.28 * day_t
-					sr = lerp(sr, 255.0, g)
-					sg = lerp(sg, 200.0, g)
-					sb = lerp(sb, 120.0, g)
-				}
+				// 外側の淡い大気ハレーション
+				outer := clamp01(1.0 - sun_dist / 0.42)
+				outer = outer * outer * outer
+				sr = lerp(sr, 255.0, outer * 0.35 * sun_visibility)
+				sg = lerp(sg, 190.0, outer * 0.30 * sun_visibility)
+				sb = lerp(sb, 140.0, outer * 0.28 * sun_visibility)
 			}
 
-			// ── 雲 (fBM ノイズ, ひさゆすらなしの晴れた天空を基本に、ごく薄い雲を少だけ) ──
-			cloud_mask := smoothstep(0.75, 0.35, uy) // 地平線に近いほど雲が薄れる
+			// ── 雲 (fBM ノイズ・3オクターブ層でしっかり量感のある雲) ─────
+			cloud_mask := smoothstep(0.85, 0.25, uy) // 地平線近くでは薄れる
 
-			cx1 := ux * 2.2 + time * 0.004
-			cy1 := uy * 1.8 + 10.0
+			cx1 := ux * 2.1 + time * 0.005
+			cy1 := uy * 1.7 + 10.0
 			cn1 := fbm(cx1, cy1, 4)
 
-			cx2 := ux * 4.5 - time * 0.008 + 73.1
-			cy2 := uy * 3.6 + 31.7
-			cn2 := fbm(cx2, cy2, 2)
+			cx2 := ux * 4.4 - time * 0.011 + 73.1
+			cy2 := uy * 3.4 + 31.7
+			cn2 := fbm(cx2, cy2, 3)
 
-			cloud_density := cn1 * 0.68 + cn2 * 0.32
-			cloud_alpha := cloud_density - 0.56 // しきい値を上げて雲の覆いを大幅に削減
+			cx3 := ux * 9.0 + time * 0.02 + 5.5
+			cy3 := uy * 7.0 - 12.3
+			cn3 := fbm(cx3, cy3, 1)
+
+			cloud_density := cn1 * 0.55 + cn2 * 0.30 + cn3 * 0.15
+			cloud_alpha := cloud_density - 0.38
 			if cloud_alpha < 0.0 do cloud_alpha = 0.0
-			cloud_alpha = cloud_alpha * 1.7
+			cloud_alpha = cloud_alpha * 2.1
 			if cloud_alpha > 1.0 do cloud_alpha = 1.0
 			cloud_alpha *= cloud_mask
-			cloud_alpha *= 0.5 // 全体の不透明度を押さえ、見えるか見えないかのささやかな削へ
+
+			// 雲の立体感（濃いところは明るく、薄いところはやや暗く）
+			cloud_shade := clamp01(0.5 + cloud_density * 0.7)
 
 			// 昼の雲は白、夕暮れはオレンジ〜ピンク、夜は暗い青灰
-			cloud_r := lerp(lerp(80.0, 255.0, cloud_alpha), 255.0, day_t * 0.3)
-			cloud_g := lerp(lerp(85.0, 245.0, cloud_alpha), 210.0, day_t * 0.2)
-			cloud_b := lerp(lerp(100.0, 255.0, cloud_alpha), 240.0, day_t * 0.15)
+			cloud_r := lerp(70.0, 255.0, cloud_shade) * lerp(1.0, 1.08, sun_k * 0.3)
+			cloud_g := lerp(75.0, 248.0, cloud_shade)
+			cloud_b := lerp(95.0, 255.0, cloud_shade)
 
-			// 夕焦けで雲をオレンジに
-			if horizon_warmth > 0.01 {
-				cloud_r = lerp(cloud_r, 255.0, horizon_warmth * cloud_alpha * 0.5)
-				cloud_g = lerp(cloud_g, 160.0, horizon_warmth * cloud_alpha * 0.4)
-				cloud_b = lerp(cloud_b, 80.0, horizon_warmth * cloud_alpha * 0.5)
+			// 夕焼け・朝焼けで雲をオレンジに染める
+			if vivid_k > 0.01 {
+				warm := vivid_k * smoothstep(0.0, 0.9, uy)
+				cloud_r = lerp(cloud_r, 255.0, warm * 0.55)
+				cloud_g = lerp(cloud_g, 150.0, warm * 0.45)
+				cloud_b = lerp(cloud_b, 90.0, warm * 0.5)
 			}
+			// 夜は雲も暗く沈める
+			night_dim := 1.0 - star_k * 0.55
+			cloud_r *= night_dim
+			cloud_g *= night_dim
+			cloud_b *= night_dim
 
-			sr = lerp(sr, cloud_r, cloud_alpha * 0.75)
-			sg = lerp(sg, cloud_g, cloud_alpha * 0.75)
-			sb = lerp(sb, cloud_b, cloud_alpha * 0.75)
+			sr = lerp(sr, cloud_r, cloud_alpha * 0.9)
+			sg = lerp(sg, cloud_g, cloud_alpha * 0.9)
+			sb = lerp(sb, cloud_b, cloud_alpha * 0.9)
 
-			// ── 星 (夜のみ、ほんのりと少なめに) ─────────────────
-			night_t := clamp01(1.0 - day_t * 3.0)
-			if night_t > 0.0 && cloud_alpha < 0.3 {
-				star_hash := _hash(i32(ux * 400.0), i32(uy * 300.0))
-				if star_hash > 0.994 {
-					twinkle := fast_sin(time * 3.0 + star_hash * 100.0) * 0.5 + 0.5
-					star_bright := night_t * twinkle * (1.0 - cloud_alpha * 3.0)
-					sr = lerp(sr, 255.0, star_bright * 0.9)
-					sg = lerp(sg, 255.0, star_bright * 0.9)
-					sb = lerp(sb, 255.0, star_bright)
-				}
-			}
-
-			// ── 金星・一番星（画像のように中天高くに常に一つ輝く） ────────────
-			{
-				venus_px: f32 = 0.5
-				venus_py: f32 = 0.05
-				vdx := ux - venus_px
-				vdy := uy - venus_py
-				venus_dist := math.sqrt(vdx * vdx + vdy * vdy)
-				venus_vis := clamp01(1.0 - day_t * 1.6) // 日中は消え、夕方から徐々に現れる
-				if venus_vis > 0.0 {
-					glow := clamp01(1.0 - venus_dist / 0.018)
-					core := clamp01(1.0 - venus_dist / 0.006)
-					b := (glow * glow * 0.5 + core) * venus_vis
+			// ── 星空（ウユニ塩湖の水面に映るよう、時間で点滅させない） ────
+			if star_k > 0.0 && cloud_alpha < 0.35 {
+				star_hash := _hash(i32(ux * 760.0), i32(uy * 560.0))
+				if star_hash > 0.975 {
+					tier := star_hash > 0.997 ? f32(1.0) : f32(0.4) // ごく一部だけ明るい星
+					b := tier * star_k * (1.0 - cloud_alpha * 2.5)
 					sr = lerp(sr, 255.0, clamp01(b))
-					sg = lerp(sg, 250.0, clamp01(b))
-					sb = lerp(sb, 235.0, clamp01(b * 0.95))
+					sg = lerp(sg, 255.0, clamp01(b * 0.97))
+					sb = lerp(sb, 255.0, clamp01(b * 0.92))
 				}
 			}
 
@@ -284,20 +335,25 @@ render_frame :: proc "contextless" (time: f32) {
 			rr, gg, bb: u8
 
 			if is_water {
-				dh := f32(y - HEIGHT / 2) / f32(HEIGHT / 2) // 0〜1 (水面奥〜手前)
-
-				// ウユニ塩湖のようなほぼ完全な鶗面：揺らぎはごく弱く、低周波のゆったりした波紋のみ
+				// ウユニ塩湖のようなほぼ完全な鏡面：揺らぎはごく弱く、低周波のゆったりした波紋のみ
 				wx := ux * 14.0 + time * 0.35
 				wy := dh * 9.0 + time * 0.12
 				shimmer := fast_sin(wx) * fast_sin(wy) * 0.5 + 0.5
 
+				// 太陽が沈む方向に伸びる、水面に映る光の帯（グレア）
+				glare: f32 = 0.0
+				if sun_visibility > 0.0 {
+					lane := smoothstep(0.10, 0.0, math.abs(ux - sun_px))
+					glare = lane * sun_visibility * (1.0 - dh * 0.55) * 70.0
+				}
+
 				// 水面はほぼそのまま空を映す（わずかに暗く、手前は少し青みが強まる）
-				darken := 0.72 + (1.0 - dh) * 0.14
+				darken := 0.74 + (1.0 - dh) * 0.13
 				shimmer_add := shimmer * 4.0 * (1.0 - dh * 0.6)
 
-				rr = u8(clamp01((sr * darken + shimmer_add) / 255.0) * 255.0)
-				gg = u8(clamp01((sg * darken + shimmer_add) / 255.0) * 255.0)
-				bb = u8(clamp01((sb * darken + shimmer_add + 3.0) / 255.0) * 255.0)
+				rr = u8(clamp01((sr * darken + shimmer_add + glare) / 255.0) * 255.0)
+				gg = u8(clamp01((sg * darken + shimmer_add + glare * 0.85) / 255.0) * 255.0)
+				bb = u8(clamp01((sb * darken + shimmer_add + glare * 0.55 + 3.0) / 255.0) * 255.0)
 			} else {
 				rr = u8(clamp01(sr / 255.0) * 255.0)
 				gg = u8(clamp01(sg / 255.0) * 255.0)
