@@ -19,7 +19,7 @@ type SpotifyNowPlaying = {
   progress_ms?: number;
 };
 
-const POLL_MS = 30000; // 30 seconds (reduced frequency to avoid extra API/KV usage)
+const POLL_MS = 30000;
 
 const NowPlaying: React.FC = () => {
   const [data, setData] = useState<SpotifyNowPlaying | null>(null);

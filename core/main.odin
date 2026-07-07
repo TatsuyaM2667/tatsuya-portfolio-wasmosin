@@ -1,24 +1,17 @@
 package main
 
 import "core:math"
-
-// ─── 解像度定義 ────────────────────────────────────────────────────────────
-// CSS 側でフルスクリーンに拡大するため内部解像度は控えめに保つ
 WIDTH :: 512
 HEIGHT :: 384
-NOISE_DIM :: 64 // 2のべき乗である必要がある
+NOISE_DIM :: 64
 
-// JS 側が解像度を問い合わせられるようにエクスポート
-// (Odin側の定数を単一の真実の情報源にする)
 @(export)
 get_width :: proc "contextless" () -> i32 {return WIDTH}
 
 @(export)
 get_height :: proc "contextless" () -> i32 {return HEIGHT}
 
-//高速三角関数 ──────────────────────────────────────────────────────────
-// freestanding_wasm32 では core:math の sin/cos は外部関数 (env.sinf/env.cosf)依存し、ピクセル毎に呼ぶとFFI境界のオーバーヘッドで大きく重くなる。
-// →ここでは自己完結のポリノミアル近似 (最大誤差 ~0.001) を使い、ホスト関数への依存を完全に無くして軽量化する。
+//高速三角関数
 fast_sin :: proc "contextless" (x: f32) -> f32 {
 	PI :: 3.14159265358979
 	TAU :: 6.28318530717958
