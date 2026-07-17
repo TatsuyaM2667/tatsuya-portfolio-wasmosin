@@ -6,7 +6,6 @@
       "name": "tatsuya-portfolio-wasmosin",
       "dependencies": {
         "@types/animejs": "^3.1.13",
-        "@types/three": "^0.184.1",
         "animejs": "^4.4.1",
         "cors": "^2.8.5",
         "dotenv": "^16.1.4",
@@ -18,7 +17,6 @@
         "react": "^19.2.7",
         "react-dom": "^19.2.7",
         "react-i18next": "^17.0.8",
-        "three": "^0.184.0",
       },
       "devDependencies": {
         "@eslint/js": "^10.0.1",
@@ -34,6 +32,7 @@
         "eslint-plugin-react-refresh": "^0.5.2",
         "globals": "^17.6.0",
         "postcss": "^8.5.15",
+        "tailwindcss": "3",
         "typescript": "~6.0.2",
         "typescript-eslint": "^8.59.2",
         "vite": "^8.0.12",
