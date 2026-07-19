@@ -8,6 +8,7 @@ import Skills from "./pages/Skills";
 import Contact from "./pages/Contact";
 import Background from "./components/Background";
 import Typewriter from "./components/Typewriter";
+import PixelDemo from "./components/PixelDemo";
 import { useLanguage, LanguageProvider } from "./hooks/useLanguage";
 import "./App.css";
 
@@ -27,6 +28,7 @@ function AppContent() {
   const [prevCommands, setPrevCommands] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isSlRunning, setIsSlRunning] = useState(false);
+  const [showPixelDemo, setShowPixelDemo] = useState(false);
   const [isLangOpen, setIsLangOpen] = useState(false);
   const { language, setLanguage, t } = useLanguage();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -86,7 +88,7 @@ function AppContent() {
     switch (baseCmd) {
       case "help":
         pushHistory(
-          "Available commands: help, cd [page], ls [-a], pwd, echo [text], lang [code], uname [-a], whoami, fastfetch, cat [file], ssh, theme [name], clear, date, sl, cmatrix, coffee, skills, contact, history, sudo pacman, exit, secret",
+          "Available commands: help, cd [page], ls [-a], pwd, echo [text], lang [code], uname [-a], whoami, fastfetch, cat [file], ssh, theme [name], clear, date, sl, pixel, cmatrix, coffee, skills, contact, history, sudo pacman, exit, secret",
         );
         break;
       case "lang": {
@@ -301,6 +303,13 @@ function AppContent() {
       case "sl":
         setIsSlRunning(true);
         setTimeout(() => setIsSlRunning(false), 4000);
+        break;
+      case "pixel":
+        setShowPixelDemo(true);
+        pushHistory(
+          "Launching terminal-pixel-animation-react...",
+          "Rendering braille unicode pixels via WASM...",
+        );
         break;
       case "sudo":
         if (cmd === "sudo rm -rf /") {
@@ -584,6 +593,31 @@ function AppContent() {
 
         <TerminalWindow title={`tatsuya@dev: ~/${currentPage}`}>
           {renderPage()}
+
+          {showPixelDemo && (
+            <div className="pixel-demo-container" style={{ marginTop: "1.5rem" }}>
+              <p style={{ color: "var(--accent)", marginBottom: "0.5rem" }}>
+                <span className="prompt">$</span> pixel --render braille --fire
+              </p>
+              <PixelDemo />
+              <p className="pixel-scene-label">
+                [braille unicode | 80x64 pixels | 40x16 cells | 30fps]
+              </p>
+              <p style={{ marginTop: "0.5rem" }}>
+                <span
+                  style={{
+                    color: "var(--text)",
+                    opacity: 0.5,
+                    fontSize: "0.8rem",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => setShowPixelDemo(false)}
+                >
+                  [click to close]
+                </span>
+              </p>
+            </div>
+          )}
 
           <div
             style={{

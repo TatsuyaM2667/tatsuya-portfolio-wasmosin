@@ -41,6 +41,22 @@ const Home: React.FC = () => {
           color: "var(--accent)",
         }}
       ></div>
+
+      <div
+        className="braille-divider"
+        style={{
+          textAlign: "center",
+          fontSize: "0.9rem",
+          lineHeight: 1,
+          letterSpacing: "2px",
+          color: "var(--accent)",
+          opacity: 0.4,
+          marginBottom: "1.5rem",
+          userSelect: "none",
+        }}
+      >
+        ⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿⣿
+      </div>
       <div
         className="home-profile"
         style={{
@@ -71,6 +87,19 @@ const Home: React.FC = () => {
           </h1>
           <p style={{ color: "var(--accent)", fontSize: "1.2rem" }}>
             <Typewriter text={t.role} delay={1000} speed={40} />
+          </p>
+          <p
+            style={{
+              fontSize: "0.7rem",
+              lineHeight: 1,
+              letterSpacing: "1px",
+              color: "var(--accent)",
+              opacity: 0.5,
+              marginTop: "0.3rem",
+              userSelect: "none",
+            }}
+          >
+            ⠠⠞⠍
           </p>
         </div>
         <NowPlaying />

@@ -19,7 +19,8 @@
     "node-fetch": "^3.3.2",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-i18next": "^17.0.8"
+    "react-i18next": "^17.0.8",
+    "terminal-pixel-animation-react": "^0.2.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
